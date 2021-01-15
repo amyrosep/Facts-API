@@ -35,7 +35,6 @@ app.get("/randomfact/:key", function(req, res) {
     .findOne({})
     .sort('-factId')
     .exec(function(err, result) {
-      console.log(result);
       let maxId = result.factId;
       let randomId = Math.floor(Math.random() * (maxId  + 1));
 
