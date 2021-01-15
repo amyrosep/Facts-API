@@ -1,24 +1,56 @@
+const env = require("dotenv").config();
+
 const express = require("express");
 const app = express();
-const https = require("https");
-const port = 3000;
 const bodyParser = require("body-parser");
+const apiKey = process.env.API_KEY;
+const mongoose = require("mongoose");
 
 app.use(bodyParser.urlencoded({extended: true}));
 
-const baseUrl = "https://catfact.ninja/fact?";
-const maxLength = 399;
-
-app.get("/", function(req, res) {
-  let fullApiUrl = baseUrl + "max_length=" + maxLength;
-  https.get(fullApiUrl, function(response) {
-    response.on("data", function(data) {
-      let catFact = JSON.parse(data);
-      res.send(catFact.fact);
-    });
+mongoose.connect(process.env.DB_STRING, { useNewUrlParser: true, useUnifiedTopology: true})
+  .then(function() {
+    console.log("Connected to database");
+  })
+  .catch(function(err) {
+    console.log("Error connecting to db \n${err}");
   });
+
+const FactSchema = new mongoose.Schema({
+  factId: Number,
+  factText: String,
+  factCategory: String
 });
 
-app.listen(3000, function() {
+const Fact = mongoose.model("Fact", FactSchema);
+
+
+app.get("/randomfact/:key", function(req, res) {
+  let userKey = req.params.key;
+  if(userKey !== apiKey) {
+    res.send("Error retrieving data");
+  }
+  else {
+    Fact
+    .findOne({})
+    .sort('-factId')
+    .exec(function(err, result) {
+      console.log(result);
+      let maxId = result.factId;
+      let randomId = Math.floor(Math.random() * (maxId  + 1));
+
+      Fact.findOne({factId: randomId}, function(error, fact) {
+        if(error) {
+          res.send("Error retrieving fact :(");
+        }
+        else {
+          res.send(fact.factText);
+        }
+      });
+    });
+  }
+});
+
+app.listen(process.env.PORT, function() {
   console.log("Server is listening.");
 });
